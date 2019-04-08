@@ -1,16 +1,17 @@
 package paginator
 
 import (
-	"strconv"
-
 	"github.com/jinzhu/gorm"
+	"strconv"
 )
 
 type Paginator struct {
 	DB      *gorm.DB
 	OrderBy []string
+	Where   string
 	Page    string
 	PerPage string
+	Preload string
 }
 
 type Data struct {
@@ -28,6 +29,12 @@ func (p *Paginator) Paginate(dataSource interface{}) *Data {
 			db = db.Order(o)
 		}
 	}
+	if len(p.Where) > 0 {
+		db = db.Where(p.Where)
+	}
+	if len(p.Preload) > 0 {
+		db = db.Preload(p.Preload)
+	}
 
 	done := make(chan bool, 1)
 	var output Data
@@ -44,7 +51,7 @@ func (p *Paginator) Paginate(dataSource interface{}) *Data {
 		offset = (tmpPage - 1) * tmpPerPage
 	}
 
-	db.Limit(p.PerPage).Offset(offset).Find(dataSource)
+	db.Debug().Limit(p.PerPage).Offset(offset).Find(dataSource)
 	<-done
 
 	output.TotalRecords = count
